@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rhein International UG - Invoice Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Calibri, Arial, Helvetica, sans-serif;
+      background-color: #f0f2f5;
+      color: #000000;
+      display: flex;
+      gap: 24px;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* Left Panel: Input Form */
+    .form-panel {
+      width: 380px;
+      flex-shrink: 0;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      height: fit-content;
+      position: sticky;
+      top: 24px;
+    }
+
+    .form-panel h2 {
+      font-size: 18px;
+      margin-bottom: 14px;
+      color: #0d47a1;
+      border-bottom: 2px solid #e3f2fd;
+      padding-bottom: 8px;
+    }
+
+    .field-group {
+      margin-bottom: 12px;
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    .field-group input,
+    .field-group textarea,
+    .field-group select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #ffffff;
+    }
+
+    .field-group textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn-generate {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      background-color: #0d47a1;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-generate:hover {
+      background-color: #08306b;
+    }
+
+    .hint-text {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    /* Right Panel: Exact A4 Invoice */
+    .preview-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .invoice-page {
+      width: 210mm;
+      min-height: 297mm;
+      background: #ffffff;
+      padding: 16mm 18mm 14mm 20mm;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+      font-size: 10.5pt;
+      line-height: 1.35;
+      color: #000000;
+      position: relative;
+    }
+
+    /* Top Header */
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .logo-box {
+      padding-left: 2px;
+    }
+
+    .logo-box img {
+      max-height: 82px;
+      max-width: 175px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .company-contact {
+      text-align: right;
+      font-size: 9.8pt;
+      line-height: 1.45;
+      color: #111;
+    }
+
+    .sender-line {
+      font-size: 8.2pt;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #000;
+    }
+
+    /* Recipient Address */
+    .recipient-block {
+      margin-bottom: 20px;
+      line-height: 1.45;
+    }
+
+    .recipient-name {
+      font-size: 12pt;
+      font-weight: 400;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .recipient-address {
+      font-size: 10pt;
+      white-space: pre-line;
+    }
+
+    /* Meta Row */
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 18px;
+      font-size: 9.8pt;
+    }
+
+    .meta-table td {
+      padding: 2px 0;
+      vertical-align: top;
+    }
+
+    .meta-label {
+      font-weight: 700;
+      width: 135px;
+    }
+
+    .meta-val {
+      width: 135px;
+      text-align: center;
+    }
+
+    .meta-val-left {
+      width: 135px;
+      text-align: left;
+    }
+
+    .meta-method {
+      width: 125px;
+      text-align: center;
+    }
+
+    .meta-date-label {
+      width: 145px;
+      text-align: right;
+      padding-right: 28px;
+    }
+
+    .meta-date-val {
+      width: 95px;
+      text-align: right;
+    }
+
+    .greeting-block {
+      margin-bottom: 16px;
+      font-size: 9.8pt;
+      line-height: 1.45;
+    }
+
+    /* Items Table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.8pt;
+      border: 1.5px solid #000;
+    }
+
+    .items-table th {
+      background-color: #d9d9d9;
+      border: 1px solid #000;
+      border-bottom: 1.5px solid #000;
+      padding: 4px 6px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .items-table td {
+      border-left: 1px solid #000;
+      border-right: 1px solid #000;
+      vertical-align: top;
+      padding-top: 22px;
+      height: 112px;
+    }
+
+    .items-table td.pos-col {
+      width: 24%;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .items-table td.desc-col {
+      width: 31%;
+      text-align: center;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    .items-table td.qty-col {
+      width: 8%;
+      text-align: center;
+    }
+
+    .items-table td.price-col {
+      width: 16%;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .items-table td.total-col {
+      width: 21%;
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    /* Summary Rows */
+    .summary-row-1 {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      width: 100%;
+    }
+
+    .sum1-label {
+      width: 16%;
+      text-align: right;
+      padding-right: 6px;
+      font-size: 9.5pt;
+      padding-top: 2px;
+      padding-bottom: 2px;
+    }
+
+    .sum1-val {
+      width: 21%;
+      border-left: 1.5px solid #000;
+      border-right: 1.5px solid #000;
+      border-bottom: 1.5px solid #000;
+      text-align: right;
+      padding: 2px 4px;
+      font-size: 9.5pt;
+    }
+
+    .summary-row-2 {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      width: 100%;
+      margin-top: 12px;
+      margin-bottom: 20px;
+    }
+
+    .sum2-box {
+      width: 37%;
+      background-color: #d9d9d9;
+      border-top: 1.5px solid #000;
+      border-bottom: 1.5px solid #000;
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 4px;
+      font-weight: 700;
+      font-size: 9.8pt;
+    }
+
+    /* Tax & Payment Notes */
+    .tax-note {
+      font-size: 9pt;
+      line-height: 1.38;
+      margin-bottom: 10px;
+    }
+
+    .tax-title {
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .payment-note {
+      font-size: 9pt;
+      line-height: 1.4;
+      margin-bottom: 16px;
+    }
+
+    /* Sign-off + Right Framed QR Code */
+    .sign-qr-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .sign-off {
+      font-size: 9.5pt;
+      line-height: 1.4;
+      padding-top: 2px;
+    }
+
+    .sign-name {
+      margin-top: 34px;
+    }
+
+    .qr-framed-box {
+      border: 1.5px solid #1f3864;
+      padding: 5px;
+      background: #ffffff;
+      margin-right: 14px;
+    }
+
+    /* Full-width Divider & Footer */
+    .footer-divider {
+      border: none;
+      border-top: 1.5px solid #000000;
+      margin-bottom: 6px;
+    }
+
+    .footer-grid {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-size: 7.8pt;
+      line-height: 1.4;
+    }
+
+    .legal-col {
+      width: 48%;
+    }
+
+    .bank-col {
+      width: 36%;
+    }
+
+    @media print {
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      body {
+        background: #ffffff;
+        padding: 0;
+        display: block;
+      }
+
+      .form-panel {
+        display: none !important;
+      }
+
+      .preview-wrapper {
+        display: block;
+      }
+
+      .invoice-page {
+        box-shadow: none;
+        width: 210mm;
+        min-height: 297mm;
+        padding: 16mm 18mm 14mm 20mm;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Input Form -->
+  <div class="form-panel">
+    <h2>Invoice Data Input</h2>
+
+    <div class="field-group">
+      <label for="inpName">Customer Name</label>
+      <input type="text" id="inpName" value="TANISHA TALUKDER" oninput="updateInvoice()" />
+    </div>
+
+    <div class="field-group">
+      <label for="inpAddress">Address (Line 1 & Line 2)</label>
+      <textarea id="inpAddress" oninput="updateInvoice()">Amelandlaan 12 ,
+5628 KA Eindhoven The Netherlands</textarea>
+    </div>
+
+    <div class="row-2">
+      <div class="field-group">
+        <label for="inpInvoiceNo">Rechnung Nr.</label>
+        <input type="text" id="inpInvoiceNo" value="202602058" oninput="updateInvoice()" />
+      </div>
+      <div class="field-group">
+        <label for="inpMethod">Payment Type</label>
+        <select id="inpMethod" onchange="updateInvoice()">
+          <option value="Uberweisung" selected>Uberweisung</option>
+          <option value="Credit Card">Credit Card</option>
+          <option value="BAR">BAR</option>
+          <option value="POS">POS</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="field-group">
+        <label for="inpDate">Rechnungsdatum</label>
+        <input type="text" id="inpDate" value="03-08-26" oninput="updateInvoice()" />
+      </div>
+      <div class="field-group">
+        <label for="inpBookingCode">Buchungs Code</label>
+        <input type="text" id="inpBookingCode" value="X9G5EN" oninput="updateInvoice()" />
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label for="inpDesc">Bezeichnung (Item)</label>
+      <select id="inpDesc" onchange="updateInvoice()">
+        <option value="Hin & Rückflug DUS-DAC-DUS">Hin & Rückflug DUS-DAC-DUS</option>
+        <option value="Umbuchung" selected>Umbuchung</option>
+        <option value="Refund">Refund</option>
+        <option value="No Ticket">No Ticket</option>
+      </select>
+    </div>
+
+    <div class="row-2">
+      <div class="field-group">
+        <label for="inpQty">Menge (Qty)</label>
+        <input type="number" id="inpQty" value="1" min="1" step="1" oninput="updateInvoice()" />
+      </div>
+      <div class="field-group">
+        <label for="inpPrice">Einzelpreis (EUR)</label>
+        <input type="number" id="inpPrice" value="133.00" min="0" step="0.01" oninput="updateInvoice()" />
+      </div>
+    </div>
+
+    <button class="btn-generate" onclick="generatePDF()">Generate PDF</button>
+    <p class="hint-text">
+      Click <strong>Generate PDF</strong> and choose <strong>Save as PDF</strong> (disable headers/footers in browser print settings).
+    </p>
+  </div>
+
+  <!-- Right A4 Preview -->
+  <div class="preview-wrapper">
+    <div class="invoice-page" id="invoicePage">
+
+      <!-- Top Header -->
+      <div class="top-header">
+        <div class="logo-box">
+          <!-- Permanent Uploaded Logo Image -->
+          <img id="permanentLogoImg" src="" alt="RHEIN Logo" style="display:none;" />
+
+          <!-- Fallback SVG Logo (shows if external image fails to load) -->
+          <svg id="defaultLogoSvg" width="142" height="82" viewBox="0 0 360 212" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="logoBlueHoriz" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#192862"/>
+                <stop offset="65%" stop-color="#1d3579"/>
+                <stop offset="100%" stop-color="#1f6ab2"/>
+              </linearGradient>
+              <linearGradient id="logoBlueRight" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#2270b8"/>
+                <stop offset="45%" stop-color="#1c397e"/>
+                <stop offset="100%" stop-color="#192862"/>
+              </linearGradient>
+              <linearGradient id="topCapGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#1b2b68"/>
+                <stop offset="65%" stop-color="#1e498d"/>
+                <stop offset="100%" stop-color="#1d74bc"/>
+              </linearGradient>
+              <linearGradient id="goldMidGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#f39822"/>
+                <stop offset="48%" stop-color="#fcc45c"/>
+                <stop offset="100%" stop-color="#f19320"/>
+              </linearGradient>
+              <linearGradient id="goldBotGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#f8b243"/>
+                <stop offset="60%" stop-color="#f29521"/>
+                <stop offset="100%" stop-color="#ee8b1c"/>
+              </linearGradient>
+              <linearGradient id="letterBlueGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#2172ba"/>
+                <stop offset="55%" stop-color="#1d4489"/>
+                <stop offset="100%" stop-color="#192964"/>
+              </linearGradient>
+            </defs>
+
+            <rect x="82" y="10" width="66" height="44" fill="url(#logoBlueHoriz)"/>
+            <path d="M82 57 H148 V75 H125 V94 H148 V113 H82 Z" fill="url(#logoBlueHoriz)"/>
+            <rect x="151" y="10" width="44" height="23" fill="url(#topCapGrad)"/>
+            <rect x="151" y="34" width="44" height="50" fill="url(#goldMidGrad)"/>
+            <rect x="151" y="87" width="44" height="26" fill="url(#goldBotGrad)"/>
+            <path d="M198 10 H244 C266 10 278 21 278 38 C278 52 269 61 255 64 L281 113 H245 L224 67 H198 V47 H237 C245 47 250 43 250 37 C250 31 245 27 237 27 H198 Z" fill="url(#logoBlueRight)"/>
+
+            <g transform="translate(18, 138)">
+              <path d="M0 0 H45 C58 0 65 5 65 13.5 C65 20 60 24.5 52 26 L66 43 H48 L36 27 H15 V43 H0 Z M15 9.5 V18.5 H41 C46 18.5 49 16.8 49 14 C49 11.2 46 9.5 41 9.5 Z" fill="url(#letterBlueGrad)"/>
+              <path d="M74 0 H89 V16.5 H122 V0 H137 V43 H122 V26.5 H89 V43 H74 Z" fill="url(#letterBlueGrad)"/>
+              <path d="M147 0 H202 V9.5 H162 V16.5 H196 V25.5 H162 V33.5 H203 V43 H147 Z" fill="url(#letterBlueGrad)"/>
+              <rect x="213" y="0" width="15" height="43" fill="url(#letterBlueGrad)"/>
+              <path d="M238 0 H254 L286 27.5 V0 H301 V43 H286 L253 15 V43 H238 Z" fill="url(#letterBlueGrad)"/>
+            </g>
+
+            <line x1="18" y1="196" x2="46" y2="196" stroke="#eda134" stroke-width="2.6"/>
+            <text x="169" y="201" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="14.5" letter-spacing="4.6" fill="#eb9b28">INTERNATIONAL</text>
+            <line x1="291" y1="196" x2="319" y2="196" stroke="#eda134" stroke-width="2.6"/>
+          </svg>
+        </div>
+
+        <div class="company-contact">
+          <div>Rhein International UG</div>
+          <div>Telefon: 015166854580</div>
+          <div>info@rheininternational.de</div>
+          <div>www.rheininternational.de</div>
+        </div>
+      </div>
+
+      <div class="sender-line">
+        Rhein International UG | Mülheimerstr. 56| 47057 Duisburg
+      </div>
+
+      <!-- Recipient -->
+      <div class="recipient-block">
+        <div class="recipient-name" id="outName">TANISHA TALUKDER</div>
+        <div class="recipient-address" id="outAddress">Amelandlaan 12 ,
+5628 KA Eindhoven The Netherlands</div>
+      </div>
+
+      <!-- Invoice Metadata -->
+      <table class="meta-table">
+        <tr>
+          <td class="meta-label">Rechnung Nr. &nbsp;&nbsp;:</td>
+          <td class="meta-val" id="outInvoiceNo">202602058</td>
+          <td class="meta-method" id="outMethod">Uberweisung</td>
+          <td class="meta-date-label">Rechnungsdatum</td>
+          <td class="meta-date-val" id="outDate">03-08-26</td>
+        </tr>
+        <tr>
+          <td class="meta-label">Buchungs Code :</td>
+          <td class="meta-val-left" id="outBookingCode">X9G5EN</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      </table>
+
+      <!-- Greeting -->
+      <div class="greeting-block">
+        <div>Sehr geehrte Damen und Herren,</div>
+        <div style="margin-top: 12px;">
+          Vielen Dank für Ihr Vertrauen in die Rhein International UG.<br />
+          Wir stellen Ihnen hiermit folgende Leistung in Rechnung:
+        </div>
+      </div>
+
+      <!-- Line Items Table -->
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width: 24%;">Pos.</th>
+            <th style="width: 31%;">Bezeichnung</th>
+            <th style="width: 8%;">Menge</th>
+            <th style="width: 16%;">Einzelpreis</th>
+            <th style="width: 21%;">Gesamtpreis EUR</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="pos-col">1</td>
+            <td class="desc-col" id="outDesc">Umbuchung</td>
+            <td class="qty-col" id="outQty">1</td>
+            <td class="price-col" id="outPrice">133.00 €</td>
+            <td class="total-col" id="outLineTotal">133.00 €</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Summary Row 1: Summe Postitionen -->
+      <div class="summary-row-1">
+        <div class="sum1-label">Summe Postitionen</div>
+        <div class="sum1-val" id="outSubtotal">133.00 €</div>
+      </div>
+
+      <!-- Summary Row 2: Rechnungsbetrag -->
+      <div class="summary-row-2">
+        <div class="sum2-box">
+          <span>Rechnungsbetrag</span>
+          <span id="outGrandTotal">133.00 €</span>
+        </div>
+      </div>
+
+      <!-- Tax & Payment Conditions -->
+      <div class="tax-note">
+        <div class="tax-title">Umsatzsteuerhinweis:</div>
+        <div>
+          Bei innerdeutschen Flügen wird 19% MwSt. auf den Flugpreis und auf Zusatzleistungen (z.B. Übergepäck,
+          Umbuchung) erhoben. Bei Auslandsflügen erfolgt ein 'passenger receipt' ohne Umsatzsteuerausweis gemäß § 26,
+          Abs. 3 UstG
+        </div>
+      </div>
+
+      <div class="payment-note">
+        <div><strong>Zahlungsbedingungen: Sofort fällig.</strong></div>
+        <div>Bitte überweisen Sie den Rechnungsbetrag auf das folgende konto.</div>
+      </div>
+
+      <!-- Sign-off + Fixed Framed QR Code -->
+      <div class="sign-qr-section">
+        <div class="sign-off">
+          <div>Mit freundlichen Grüßen</div>
+          <div class="sign-name">Mizanur Rahman</div>
+        </div>
+
+        <div class="qr-framed-box">
+          <div id="fixedQrCode"></div>
+        </div>
+      </div>
+
+      <!-- Full-Width Line + Footer -->
+      <hr class="footer-divider" />
+      <div class="footer-grid">
+        <div class="legal-col">
+          <div>Rhein International UG (haftungsbeschränkt)</div>
+          <div>USt.ld Nr: DE 313637561</div>
+          <div>USt.Nr:109/5924/0877</div>
+          <div>Amtsgericht Duisburg HRB: 29777</div>
+          <div>Geschäfsführer: Mizanur Rahman</div>
+        </div>
+
+        <div class="bank-col">
+          <div>Bankverbindung</div>
+          <div>Bank Name: Volks Bank Rhein-Ruhr</div>
+          <div>IBAN: DE06350603861206780000</div>
+          <div>BIC: GENODED1VRR</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const PERMANENT_LOGO_URL = "https://ibb.co.com/tTfxkbsk";
+
+    const FIXED_QR_PAYLOAD =
+      "BCD\n002\n1\nSCT\nGENODED1VRR\nRhein International UG\nDE06350603861206780000\nEUR133.00\n\n202602058 X9G5EN";
+
+    function initPermanentLogo() {
+      const imgEl = document.getElementById("permanentLogoImg");
+      const svgEl = document.getElementById("defaultLogoSvg");
+      const rawUrl = (PERMANENT_LOGO_URL || "").trim();
+
+      if (!rawUrl) {
+        imgEl.style.display = "none";
+        svgEl.style.display = "block";
+        return;
+      }
+
+      // If user pasted an ImgBB viewer link (e.g., https://ibb.co.com/tTfxkbsk), try direct image candidates
+      const ibbMatch = rawUrl.match(/^https?:\/\/ibb\.co(?:\.com)?\/([a-zA-Z0-9]+)/);
+      const candidates = ibbMatch
+        ? [
+            `https://i.ibb.co.com/${ibbMatch[1]}/image.png`,
+            `https://i.ibb.co/${ibbMatch[1]}/image.png`,
+            rawUrl
+          ]
+        : [rawUrl];
+
+      let idx = 0;
+      imgEl.onload = function () {
+        imgEl.style.display = "block";
+        svgEl.style.display = "none";
+      };
+      imgEl.onerror = function () {
+        idx++;
+        if (idx < candidates.length) {
+          imgEl.src = candidates[idx];
+        } else {
+          // Fallback to exact built-in vector logo if external link cannot load
+          imgEl.style.display = "none";
+          svgEl.style.display = "block";
+        }
+      };
+      imgEl.src = candidates[0];
+    }
+
+    function formatEur(num) {
+      const safeNum = isNaN(num) ? 0 : num;
+      return safeNum.toFixed(2) + " €";
+    }
+
+    function updateInvoice() {
+      const nameVal = document.getElementById("inpName").value.trim() || "TANISHA TALUKDER";
+      const addrVal = document.getElementById("inpAddress").value;
+      const invNoVal = document.getElementById("inpInvoiceNo").value.trim() || "202602058";
+      const methodVal = document.getElementById("inpMethod").value;
+      const dateVal = document.getElementById("inpDate").value.trim() || "03-08-26";
+      const codeVal = document.getElementById("inpBookingCode").value.trim() || "X9G5EN";
+      const descVal = document.getElementById("inpDesc").value;
+      const qtyVal = parseFloat(document.getElementById("inpQty").value) || 0;
+      const priceVal = parseFloat(document.getElementById("inpPrice").value) || 0;
+
+      const lineTotal = qtyVal * priceVal;
+
+      document.getElementById("outName").textContent = nameVal;
+      document.getElementById("outAddress").textContent = addrVal;
+      document.getElementById("outInvoiceNo").textContent = invNoVal;
+      document.getElementById("outMethod").textContent = methodVal;
+      document.getElementById("outDate").textContent = dateVal;
+      document.getElementById("outBookingCode").textContent = codeVal;
+      document.getElementById("outDesc").textContent = descVal;
+      document.getElementById("outQty").textContent = qtyVal;
+      document.getElementById("outPrice").textContent = formatEur(priceVal);
+      document.getElementById("outLineTotal").textContent = formatEur(lineTotal);
+      document.getElementById("outSubtotal").textContent = formatEur(lineTotal);
+      document.getElementById("outGrandTotal").textContent = formatEur(lineTotal);
+
+      const invNoClean = invNoVal.replace(/[^a-zA-Z0-9_-]/g, "_");
+      const nameClean = nameVal.replace(/[^a-zA-Z0-9_-]/g, "_");
+      document.title = `${invNoClean}_${nameClean}`;
+    }
+
+    function renderFixedQR() {
+      const qrContainer = document.getElementById("fixedQrCode");
+      qrContainer.innerHTML = "";
+      new QRCode(qrContainer, {
+        text: FIXED_QR_PAYLOAD,
+        width: 96,
+        height: 96,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+    function generatePDF() {
+      updateInvoice();
+      window.print();
+    }
+
+    initPermanentLogo();
+    renderFixedQR();
+    updateInvoice();
+  </script>
+</body>
+</html>
